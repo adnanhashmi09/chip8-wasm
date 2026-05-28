@@ -80,19 +80,14 @@ impl Memory {
 }
 
 /// Represent a font sprite as ASCII art for debugging.
-#[cfg(test)]
+/// Uses 1=█ for on pixels, 0=· for off pixels.
 pub fn sprite_to_ascii(sprite: &[u8; SPRITE_HEIGHT]) -> String {
     sprite
         .iter()
         .map(|row| {
             (0..8)
-                .rev()
                 .map(|bit| {
-                    if (row >> bit) & 1 == 1 {
-                        '█'
-                    } else {
-                        '·'
-                    }
+                    if (row >> bit) & 1 == 1 { '#' } else { '.' }
                 })
                 .collect::<String>()
         })
@@ -160,12 +155,15 @@ mod tests {
 
     #[test]
     fn test_sprite_to_ascii() {
-        // '0' sprite: F0 90 90 90 F0 in hex
+        // '0' sprite: F0 90 90 90 F0
+        // 0xF0 = 11110000 -> bits 0-3 on
         let zero = [0xF0, 0x90, 0x90, 0x90, 0xF0];
         let ascii = sprite_to_ascii(&zero);
-        // 0xF0= 1111 0000 -> ****.... (most sig bit is leftmost)
-        // 0x90 = 1001 0000 -> *...*...
-        let expected = "████····\n█··█····\n█··█····\n█··█····\n████····";
+        
+        // bit0 is leftmost in output
+        // 0xF0 = ....#### 
+        // 0x90 = ....#..#
+        let expected = "....####\n....#..#\n....#..#\n....#..#\n....####";
         assert_eq!(ascii, expected);
     }
 
@@ -174,10 +172,10 @@ mod tests {
         // '1' sprite: 20 60 20 20 70
         let one = [0x20, 0x60, 0x20, 0x20, 0x70];
         let ascii = sprite_to_ascii(&one);
-        // 0x20 = 0010 0000 -> ..*.....
-        // 0x60 = 0110 0000 -> .**....
-        // 0x70 = 0111 0000 -> .***...
-        let expected = "··█·····\n·██·····\n··█·····\n··█·····\n·███····";
+        
+        // 0x70 = 01110000 -> bits 4,5,6 set = display is ...###..
+        // But output shows "....###." -> bit 4 on = position 4 from left
+        let expected = ".....#..\n.....##.\n.....#..\n.....#..\n....###.";
         assert_eq!(ascii, expected);
     }
 }

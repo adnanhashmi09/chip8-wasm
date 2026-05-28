@@ -1,0 +1,16 @@
+# Rust build artifacts
+/Cargo.lock
+/target/
+
+# WASM build artifacts
+www/dist/
+*.wasm
+*.js
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store

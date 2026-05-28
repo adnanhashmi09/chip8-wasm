@@ -13,6 +13,9 @@ pub const ROM_LOAD_ADDRESS: u16 = 0x200;
 /// The CHIP-8 interpreter reserved area (not used by ROMs)
 pub const INTERPRETER_SIZE: usize = 0x200; // 512 bytes
 
+pub const FONT_START: u16 = 0x000;
+
+
 /// CHIP-8 memory structure
 #[derive(Debug)]
 pub struct Memory {
@@ -21,7 +24,6 @@ pub struct Memory {
 }
 
 impl Memory {
-    /// Create a new Memory instance (zeroed)
     pub fn new() -> Self {
         Memory {
             data: [0; RAM_SIZE],
@@ -29,11 +31,12 @@ impl Memory {
     }
 
     /// Read a byte from memory at the given address.
-    /// 
-    /// # Panics
-    /// Panics if the address is out of bounds (> 0xFFF).
     pub fn read(&self, addr: u16) -> u8 {
-        assert!(addr < RAM_SIZE as u16, "Memory read out of bounds: {:#06x}", addr);
+        assert!(
+            addr < RAM_SIZE as u16,
+            "Memory read out of bounds: {:#06x}",
+            addr
+        );
         self.data[addr as usize]
     }
 
@@ -45,26 +48,31 @@ impl Memory {
     }
 
     /// Write a byte to memory at the given address.
-    /// 
-    /// # Panics
-    /// Panics if the address is out of bounds (> 0xFFF).
     pub fn write(&mut self, addr: u16, value: u8) {
-        assert!(addr < RAM_SIZE as u16, "Memory write out of bounds: {:#06x}", addr);
+        assert!(
+            addr < RAM_SIZE as u16,
+            "Memory write out of bounds: {:#06x}",
+            addr
+        );
         self.data[addr as usize] = value;
     }
 
     /// Write a 16-bit word to memory (big-endian: high byte first).
     pub fn write_word(&mut self, addr: u16, value: u16) {
+        // 0x12AB as u8 -> AB
         self.write(addr, (value >> 8) as u8);
         self.write(addr + 1, value as u8);
     }
 
+    /// Write a slice of bytes to memory starting at addr.
+    pub fn write_slice(&mut self, addr: u16, data: &[u8]) {
+        for (i, &byte) in data.iter().enumerate() {
+            self.write(addr + i as u16, byte);
+        }
+    }
+
     /// Load a ROM into memory starting at 0x200.
-    /// 
     /// Returns the size of the ROM that was loaded.
-    /// 
-    /// # Panics
-    /// Panics if the ROM is too large to fit in memory.
     pub fn load_rom(&mut self, rom: &[u8]) -> usize {
         let size = rom.len();
         assert!(
@@ -129,7 +137,7 @@ mod tests {
         let mut memory = Memory::new();
         let rom = vec![0x00, 0xE0, 0x12, 0x34];
         let size = memory.load_rom(&rom);
-        
+
         assert_eq!(size, 4);
         assert_eq!(memory.read(ROM_LOAD_ADDRESS), 0x00);
         assert_eq!(memory.read(ROM_LOAD_ADDRESS + 1), 0xE0);

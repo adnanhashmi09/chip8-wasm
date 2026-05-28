@@ -4,3 +4,4 @@
 //! via WebAssembly.
 
 pub mod memory;
+pub mod fonts;

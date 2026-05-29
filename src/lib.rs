@@ -7,3 +7,5 @@ pub mod memory;
 pub mod fonts;
 pub mod display;
 pub mod cpu;
+pub mod keypad;
+pub mod timers;

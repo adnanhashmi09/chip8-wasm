@@ -150,6 +150,11 @@ impl Display {
 
         Ok(())
     }
+
+    /// Get pixels reference for direct access.
+    pub fn get_pixels(&self) -> &[u8; DISPLAY_SIZE] {
+        &self.pixels
+    }
 }
 
 impl Default for Display {

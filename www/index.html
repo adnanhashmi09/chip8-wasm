@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIP-8 Emulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .canvas-container {
+            background: #000;
+            border: 3px solid #00d4ff;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        #display {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: block;
+        }
+        
+        .controls {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-section {
+            margin-bottom: 15px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #00a8cc;
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #e94560;
+        }
+        
+        .btn-secondary:hover {
+            background: #c73e54;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .keypad-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        
+        .keypad-info h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            max-width: 200px;
+        }
+        
+        .key {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-family: monospace;
+        }
+        
+        .key-pressed {
+            background: #00d4ff;
+            color: #000;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            background: #0f3460;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .status-label {
+            color: #888;
+        }
+        
+        .status-value {
+            color: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>CHIP-8 Emulator</h1>
+    
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="display" width="640" height="320"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="upload-section">
+                <div class="btn-group">
+                    <label class="btn" for="rom-input">
+                        Load ROM
+                    </label>
+                    <input type="file" id="rom-input" accept=".ch8,.bin">
+                    
+                    <button class="btn" id="demo-btn">Load Demo</button>
+                    <button class="btn btn-secondary" id="reset-btn">Reset</button>
+                </div>
+            </div>
+            
+            <div class="keypad-info">
+                <h3>Keyboard Mapping</h3>
+                <div class="keypad-grid" id="keypad">
+                    <div class="key" data-key="0x1">1</div>
+                    <div class="key" data-key="0x2">2</div>
+                    <div class="key" data-key="0x3">3</div>
+                    <div class="key" data-key="0xC">4</div>
+                    <div class="key" data-key="0x4">Q</div>
+                    <div class="key" data-key="0x5">W</div>
+                    <div class="key" data-key="0x6">E</div>
+                    <div class="key" data-key="0xD">R</div>
+                    <div class="key" data-key="0x7">A</div>
+                    <div class="key" data-key="0x8">S</div>
+                    <div class="key" data-key="0x9">D</div>
+                    <div class="key" data-key="0xE">F</div>
+                    <div class="key" data-key="0xA">Z</div>
+                    <div class="key" data-key="0x0">X</div>
+                    <div class="key" data-key="0xB">C</div>
+                    <div class="key" data-key="0xF">V</div>
+                </div>
+            </div>
+            
+            <div class="status">
+                <div class="status-row">
+                    <span class="status-label">PC:</span>
+                    <span class="status-value" id="pc">0x200</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">I:</span>
+                    <span class="status-value" id="ir">0x000</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Timers:</span>
+                    <span class="status-value" id="timers">0 / 0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import init, { Chip8Wasm } from './pkg/chip8.js';
+        
+        let chip8 = null;
+        let animationId = null;
+        
+        const canvas = document.getElementById('display');
+        const ctx = canvas.getContext('2d');
+        const DISPLAY_WIDTH = 640;
+        const DISPLAY_HEIGHT = 320;
+        const SCALE = 10;
+        
+        // Create offscreen buffer for pixel data
+        const imageData = ctx.createImageData(64, 32);
+        
+        async function initEmulator() {
+            await init();
+            chip8 = new Chip8Wasm();
+            chip8.reset();
+            run();
+        }
+        
+        function run() {
+            // Execute a frame of instructions
+            chip8.update();
+            
+            // Render display
+            render();
+            
+            // Update status
+            updateStatus();
+            
+            // Continue loop
+            animationId = requestAnimationFrame(run);
+        }
+        
+        function render() {
+            const pixels = chip8.get_display();
+            
+            // Render 64x32 buffer scaled up 10x
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+            
+            ctx.fillStyle = '#fff';
+            for (let y = 0; y < 32; y++) {
+                for (let x = 0; x < 64; x++) {
+                    if (pixels[y * 64 + x]) {
+                        ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+                    }
+                }
+            }
+        }
+        
+        function updateStatus() {
+            document.getElementById('pc').textContent = '0x' + chip8.get_pc().toString(16).toUpperCase();
+            document.getElementById('ir').textContent = '0x' + chip8.get_index().toString(16).toUpperCase();
+            document.getElementById('timers').textContent = 
+                chip8.get_delay_timer() + ' / ' + chip8.get_sound_timer();
+        }
+        
+        // File input handler
+        document.getElementById('rom-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const buffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                try {
+                    chip8.load_rom(bytes);
+                } catch (err) {
+                    alert('Failed to load ROM: ' + err);
+                }
+            }
+        });
+        
+        // Demo button
+        document.getElementById('demo-btn').addEventListener('click', () => {
+            chip8.load_demo();
+        });
+        
+        // Reset button
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            chip8.reset();
+        });
+        
+        // Keyboard handling
+        const KEY_MAP = {
+            '1': 0x1, '2': 0x2, '3': 0x3, '4': 0xC,
+            'q': 0x4, 'w': 0x5, 'e': 0x6, 'r': 0xD,
+            'a': 0x7, 's': 0x8, 'd': 0x9, 'f': 0xE,
+            'z': 0xA, 'x': 0x0, 'c': 0xB, 'v': 0xF
+        };
+        
+        document.addEventListener('keydown', (e) => {
+            const key = KEY_MAP[e.key.toLowerCase()];
+            if (key !== undefined) {
+                chip8.key_press(key);
+                document.querySelector(`[data-key="0x${key.toString(16).toUpperCase()}"]`)?.classList.add('key-pressed');
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            const key = KEY_MAP[e.key.toLowerCase()];
+            if (key !== undefined) {
+                chip8.key_release(key);
+                document.querySelector(`[data-key="0x${key.toString(16).toUpperCase()}"]`)?.classList.remove('key-pressed');
+            }
+        });
+        
+        // Start the emulator
+        initEmulator();
+    </script>
+</body>
+</html>

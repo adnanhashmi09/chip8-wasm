@@ -2,39 +2,77 @@
 
 A CHIP-8 emulator written in Rust, compiled to WebAssembly for running in the browser.
 
-## Architecture
-
-- **Memory**: 4KB RAM (0x000-0xFFF)
-- **ROM Load Address**: 0x200
-- **Font Sprites**: 16 characters (0-9, A-F) at 0x000-0x04F, each 8x5 pixels
-- **Compiled to WASM** for browser execution
-
-## Modules
-
-| Module | Description |
-|--------|-------------|
-| `memory` | 4KB RAM with read/write operations |
-| `fonts` | Built-in 16-character sprite set |
-
 ## Building
 
+### Prerequisites
+- Rust (with `wasm32-unknown-unknown` target)
+- wasm-bindgen
+
+### Install wasm-pack (if not installed)
 ```bash
-cargo build --release
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
-## Testing
-
+Or install via cargo:
 ```bash
-cargo test
+cargo install wasm-pack
 ```
 
-## Project Structure
+### Build WASM
+```bash
+wasm-pack build --target web
+```
+
+This generates:
+- `pkg/chip8.js` - JavaScript bindings
+- `pkg/chip8_bg.wasm` - WebAssembly binary
+
+### Run the Demo
+```bash
+# Python (from the www directory)
+python -m http.server 8080
+
+# Or Node.js
+npx serve .
+```
+
+Then open http://localhost:8080 in your browser.
+
+## Architecture
 
 ```
-chip8/
-├── src/
-│   ├── lib.rs      # Crate root
-│   ├── memory.rs   # RAM module
-│   └── fonts.rs    # Sprite fonts
-└── Cargo.toml
+www/
+├── index.html      # Main page
+└── index.js        # JS glue + game loop
+
+Rust (src/):
+├── lib.rs          # Crate exports
+├── memory.rs       # 4KB RAM
+├── fonts.rs        # 16 sprites (0-9, A-F)
+├── display.rs      # 64x32 pixel buffer
+├── cpu/
+│   ├── mod.rs      # CPU + all opcodes
+│   └── stack.rs    # 16-level stack
+├── keypad.rs       # 16-key keyboard
+├── timers.rs       # delay + sound timers
+├── chip8.rs        # Complete emulator
+└── wasm.rs          # WASM bindings for JS
 ```
+
+## Controls
+
+```
+┌───┬───┬───┬───┐       Key    │ Key
+│ 1 │ 2 │ 3 │ 4 │       ─────┼─────
+├───┼───┼───┼───┤       1,2,3,4│ 1,2,3,C  │ Mapping to 0-9,A-F
+│ Q │ W │ E │ R │  →    Q,W,E,R│ 4,5,6,D
+├───┼───┼───┼───┤       A,S,D,F│ 7,8,9,E
+│ A │ S │ D │ F │       Z,X,C,V│ A,0,B,F
+├───┼───┼───┼───┤
+│ Z │ X │ C │ V │
+└───┴───┴───┴───┘
+```
+
+## Controls
+
+Upload any `.ch8` Chip-8 ROM and play!

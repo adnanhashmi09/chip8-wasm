@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIP-8 Emulator Test</title>
+    <style>
+        body {
+            background: #1a1a2e;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        .error {
+            background: #e94560;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        #display {
+            image-rendering: pixelated;
+            border: 2px solid #00d4ff;
+            background: #000;
+        }
+        .status {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CHIP-8 Emulator Test</h1>
+    <canvas id="display" width="640" height="320"></canvas>
+    <div class="status" id="status">Loading...</div>
+    <div id="error"></div>
+    
+    <script type="module">
+        import init, { Chip8Wasm } from './pkg/chip8.js';
+        
+        let chip8;
+        const canvas = document.getElementById('display');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const errorDiv = document.getElementById('error');
+        
+        try {
+            await init();
+            status.textContent = 'WASM loaded!';
+            
+            chip8 = new Chip8Wasm();
+            status.textContent += ' Chip8Wasm created!';
+            
+            // Load demo
+            chip8.load_demo();
+            status.textContent += ' Demo loaded!';
+            
+            // Step through manually
+            for (let i = 0; i < 6; i++) {
+                chip8.step();
+                status.textContent = `Step ${i+1}: PC=0x${chip8.get_pc().toString(16)}, I=0x${chip8.get_index().toString(16)}`;
+            }
+            
+            // Get display
+            const pixels = chip8.get_display();
+            status.textContent += ` Pixels set: ${pixels.filter(p => p > 0).length}`;
+            
+            // Render
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 640, 320);
+            ctx.fillStyle = '#fff';
+            
+            const SCALE = 10;
+            for (let y = 0; y < 32; y++) {
+                for (let x = 0; x < 64; x++) {
+                    if (pixels[y * 64 + x] > 0) {
+                        ctx.fillRect(x * SCALE, y * SCALE, SCALE, SCALE);
+                    }
+                }
+            }
+            
+            status.textContent += ' Render complete!';
+        } catch (err) {
+            errorDiv.className = 'error';
+            errorDiv.textContent = 'Error: ' + err.message + '\n\n' + err.stack;
+            status.textContent = 'Failed!';
+        }
+    </script>
+</body>
+</html>

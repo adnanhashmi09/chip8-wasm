@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal Chip-8 Test</title>
+</head>
+<body>
+    <h1>CHIP-8 Test</h1>
+    <canvas id="display" width="640" height="320"></canvas>
+    <div id="status"></div>
+    
+    <script type="module">
+        import init, { Chip8Wasm } from './pkg/chip8.js';
+        
+        const canvas = document.getElementById('display');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        
+        await init();
+        status.textContent = 'WASM loaded!';
+        
+        const chip8 = new Chip8Wasm();
+        status.textContent += ' Chip8 created!';
+        
+        // Load and run demo
+        chip8.load_demo();
+        status.textContent += ' Demo loaded! PC=' + chip8.get_pc().toString(16);
+        
+        // Step through
+        for (let i = 0; i < 6; i++) {
+            chip8.step();
+            status.textContent += '\nStep ' + (i+1) + ': PC=' + chip8.get_pc().toString(16);
+        }
+        
+        // Get and show display
+        const pixels = chip8.get_display();
+        const count = pixels.filter(p => p > 0).length;
+        status.textContent += '\nPixels set: ' + count;
+        
+        // Draw
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, 640, 320);
+        ctx.fillStyle = '#fff';
+        for (let y = 0; y < 32; y++) {
+            for (let x = 0; x < 64; x++) {
+                if (pixels[y * 64 + x] > 0) {
+                    ctx.fillRect(x * 10, y * 10, 10, 10);
+                }
+            }
+        }
+        
+        status.textContent += '\nDone!';
+    </script>
+</body>
+</html>

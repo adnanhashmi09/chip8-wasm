@@ -1,124 +1,182 @@
-//! WASM bindings for the Chip-8 emulator.
-//!
-//! This module exports the Chip-8 emulator to JavaScript via wasm-bindgen.
+//! Minimal WASM Chip-8 emulator - all in one file for simplicity
 
 use wasm_bindgen::prelude::*;
 
-// Use chip8::Chip8 in WASM context
 #[wasm_bindgen]
 pub struct Chip8Wasm {
-    chip8: crate::chip8::Chip8,
+    v: [u8; 16],
+    i: u16,
+    pc: u16,
+    memory: [u8; 4096],
+    display: [u8; 2048],
+    stack: [u16; 16],
+    sp: usize,
 }
 
 #[wasm_bindgen]
 impl Chip8Wasm {
-    /// Create a new Chip-8 emulator instance.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Chip8Wasm {
-        Chip8Wasm {
-            chip8: crate::chip8::Chip8::new(),
+        let mut chip8 = Chip8Wasm {
+            v: [0; 16],
+            i: 0,
+            pc: 0x200,
+            memory: [0; 4096],
+            display: [0; 2048],
+            stack: [0; 16],
+            sp: 0,
+        };
+        chip8.load_fonts();
+        chip8
+    }
+
+    fn load_fonts(&mut self) {
+        let fonts: [u8; 80] = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+        ];
+        for (i, &font_byte) in fonts.iter().enumerate() {
+            self.memory[i] = font_byte;
         }
     }
 
-    /// Reset the emulator to initial state.
     pub fn reset(&mut self) {
-        self.chip8.reset();
+        self.v = [0; 16];
+        self.i = 0;
+        self.pc = 0x200;
+        self.sp = 0;
+        self.display = [0; 2048];
+        self.load_fonts();
     }
 
-    /// Load a ROM from a byte array.
-    pub fn load_rom(&mut self, data: &[u8]) -> Result<usize, JsValue> {
-        self.chip8
-            .load_rom(data)
-            .map_err(|e| JsValue::from_str(&e))
-    }
-
-    /// Load a demo program.
     pub fn load_demo(&mut self) {
-        self.chip8.load_demo();
+        let demo: [u8; 12] = [
+            0x00, 0xE0, // CLS
+            0x60, 0x00, // LD V0, 0
+            0x61, 0x00, // LD V1, 0
+            0xA0, 0x00, // LD I, 0
+            0xD0, 0x15, // DRW V0, V1, 5
+            0x12, 0x0A, // JP 0x20A
+        ];
+        for (i, &byte) in demo.iter().enumerate() {
+            self.memory[0x200 + i] = byte;
+        }
+        self.pc = 0x200;
     }
 
-    /// Execute a single instruction.
     pub fn step(&mut self) {
-        self.chip8.step();
-    }
-
-    /// Execute multiple instructions (one frame).
-    pub fn update(&mut self) {
-        self.chip8.update();
-    }
-
-    /// Get the display buffer (64x32 pixels as RGBA).
-    pub fn get_display(&self) -> Vec<u8> {
-        let pixels = self.chip8.get_display();
-        let mut rgba = vec![0u8; pixels.len() * 4];
-        
-        for (i, &pixel) in pixels.iter().enumerate() {
-            let offset = i * 4;
-            if pixel == 1 {
-                // White pixel
-                rgba[offset] = 255;     // R
-                rgba[offset + 1] = 255; // G
-                rgba[offset + 2] = 255; // B
-                rgba[offset + 3] = 255; // A
-            }
-            // Alpha stays 0 for black (transparency)
+        if self.pc >= 4096 {
+            return;
         }
         
-        rgba
+        let opcode = ((self.memory[self.pc as usize] as u16) << 8) | (self.memory[self.pc as usize + 1] as u16);
+        self.pc += 2;
+        
+        let op = (opcode >> 12) as u8;
+        let vx = ((opcode >> 8) & 0xF) as usize;
+        let vy = ((opcode >> 4) & 0xF) as usize;
+        let nnn = opcode & 0xFFF;
+        let nn = (opcode & 0xFF) as u8;
+        let n = (opcode & 0xF) as u8;
+        
+        match op {
+            0x0 => {
+                if nnn == 0x0E0 {
+                    self.display = [0; 2048];
+                } else if nnn == 0x0EE {
+                    if self.sp > 0 {
+                        self.sp -= 1;
+                        self.pc = self.stack[self.sp];
+                    }
+                }
+            }
+            0x1 => {
+                self.pc = nnn;
+            }
+            0x2 => {
+                if self.sp < 16 {
+                    self.stack[self.sp] = self.pc;
+                    self.sp += 1;
+                }
+                self.pc = nnn;
+            }
+            0x6 => {
+                self.v[vx] = nn;
+            }
+            0x7 => {
+                self.v[vx] = self.v[vx].wrapping_add(nn);
+            }
+            0xA => {
+                self.i = nnn;
+            }
+            0xD => {
+                self.draw_sprite(vx, vy, n);
+            }
+            _ => {}
+        }
     }
 
-    /// Press a key (0-15).
-    pub fn key_press(&mut self, key: u8) {
-        self.chip8.key_press(key);
+    fn draw_sprite(&mut self, vx: usize, vy: usize, height: u8) {
+        let x = self.v[vx] as usize;
+        let y = self.v[vy] as usize;
+        
+        self.v[0xF] = 0;
+        
+        for row in 0..height {
+            let sprite_byte = self.memory[self.i as usize + row as usize];
+            let y_pos = (y + row as usize) % 32;
+            
+            for col in 0..8 {
+                let sprite_pixel = (sprite_byte >> (7 - col)) & 1;
+                if sprite_pixel == 1 {
+                    let x_pos = (x + col) % 64;
+                    let idx = y_pos * 64 + x_pos;
+                    
+                    if self.display[idx] == 1 {
+                        self.v[0xF] = 1;
+                        self.display[idx] = 0;
+                    } else {
+                        self.display[idx] = 1;
+                    }
+                }
+            }
+        }
     }
 
-    /// Release a key (0-15).
-    pub fn key_release(&mut self, key: u8) {
-        self.chip8.key_release(key);
+    pub fn load_rom(&mut self, data: &[u8]) -> Result<usize, JsValue> {
+        if data.len() > 0xEFF {
+            return Err(JsValue::from_str("ROM too large"));
+        }
+        for (i, &byte) in data.iter().enumerate() {
+            self.memory[0x200 + i] = byte;
+        }
+        self.pc = 0x200;
+        Ok(data.len())
     }
 
-    /// Set key from keyboard character.
-    pub fn set_key(&mut self, keycode: char, pressed: bool) {
-        self.chip8.set_key_from_keycode(keycode, pressed);
+    pub fn get_display(&self) -> Vec<u8> {
+        self.display.to_vec()
     }
 
-    /// Check if a key is pressed.
-    pub fn is_key_pressed(&self, key: u8) -> bool {
-        self.chip8.is_key_pressed(key)
-    }
-
-    /// Get delay timer value.
-    pub fn get_delay_timer(&self) -> u8 {
-        self.chip8.get_delay_timer()
-    }
-
-    /// Get sound timer value.
-    pub fn get_sound_timer(&self) -> u8 {
-        self.chip8.get_sound_timer()
-    }
-
-    /// Get program counter (for debugging).
     pub fn get_pc(&self) -> u16 {
-        self.chip8.get_pc()
+        self.pc
     }
 
-    /// Get register value (0-15).
-    pub fn get_register(&self, index: usize) -> u8 {
-        self.chip8.get_register(index)
-    }
-
-    /// Get index register.
     pub fn get_index(&self) -> u16 {
-        self.chip8.get_index()
-    }
-
-    /// Get display width.
-    pub fn display_width() -> u32 {
-        crate::display::DISPLAY_WIDTH as u32
-    }
-
-    /// Get display height.
-    pub fn display_height() -> u32 {
-        crate::display::DISPLAY_HEIGHT as u32
+        self.i
     }
 }

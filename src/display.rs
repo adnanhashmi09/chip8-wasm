@@ -98,7 +98,6 @@ impl Display {
 
         for (row_idx, &sprite_row) in sprite.iter().enumerate() {
             let y_pos = (y + row_idx) % DISPLAY_HEIGHT;
-
             // Each byte = 8 pixels, iterate over bits
             for bit in 0..8 {
                 let x_pos = (x + bit) % DISPLAY_WIDTH;
@@ -106,15 +105,11 @@ impl Display {
                 let pixel = (sprite_row >> (7 - bit)) & 1;
 
                 if pixel == 1 {
-                    let idx = y_pos * DISPLAY_WIDTH + x_pos;
-
-                    // XOR: if pixel was on, it's now off (collision!)
-                    if self.pixels[idx] == 1 {
+                    // XOR: collision if pixel was already on
+                    if self.get_pixel(x_pos, y_pos) == 1 {
                         collision = true;
                     }
-
-                    // Toggle the pixel
-                    self.pixels[idx] ^= 1;
+                    self.toggle_pixel(x_pos, y_pos);
                 }
             }
         }

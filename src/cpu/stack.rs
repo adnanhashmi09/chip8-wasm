@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_push_pop() {
         let mut stack = Stack::new();
-        
+
         stack.push(0x200);
         assert_eq!(stack.sp(), 1);
         assert_eq!(stack.pop(), 0x200);
@@ -101,13 +101,13 @@ mod tests {
     #[test]
     fn test_push_pop_multiple() {
         let mut stack = Stack::new();
-        
+
         stack.push(0x200);
         stack.push(0x300);
         stack.push(0x400);
-        
+
         assert_eq!(stack.sp(), 3);
-        assert_eq!(stack.pop(), 0x400);  // LIFO - last in, first out
+        assert_eq!(stack.pop(), 0x400); // LIFO - last in, first out
         assert_eq!(stack.pop(), 0x300);
         assert_eq!(stack.pop(), 0x200);
     }
@@ -115,15 +115,15 @@ mod tests {
     #[test]
     fn test_stack_is_lifo() {
         let mut stack = Stack::new();
-        
+
         // Push addresses in order
         stack.push(0x100);
         stack.push(0x200);
         stack.push(0x300);
         stack.push(0x400);
-        
+
         // Pop in reverse order
-        assert_eq!(stack.pop(), 0x400);  // Last pushed = first popped
+        assert_eq!(stack.pop(), 0x400); // Last pushed = first popped
         assert_eq!(stack.pop(), 0x300);
         assert_eq!(stack.pop(), 0x200);
         assert_eq!(stack.pop(), 0x100);
@@ -132,11 +132,11 @@ mod tests {
     #[test]
     fn test_reset() {
         let mut stack = Stack::new();
-        
+
         stack.push(0x200);
         stack.push(0x300);
         assert_eq!(stack.sp(), 2);
-        
+
         stack.reset();
         assert!(stack.is_empty());
         assert_eq!(stack.sp(), 0);
@@ -145,14 +145,14 @@ mod tests {
     #[test]
     fn test_is_full() {
         let mut stack = Stack::new();
-        
+
         assert!(!stack.is_full());
-        
+
         // Push 16 entries to fill the stack
         for i in 0..STACK_SIZE {
             stack.push(i as u16);
         }
-        
+
         assert!(stack.is_full());
         assert_eq!(stack.sp(), STACK_SIZE);
     }
@@ -161,7 +161,7 @@ mod tests {
     #[should_panic]
     fn test_overflow() {
         let mut stack = Stack::new();
-        
+
         // Push 17 entries (overflow on the 17th)
         for i in 0..(STACK_SIZE + 1) {
             stack.push(i as u16);
@@ -172,6 +172,6 @@ mod tests {
     #[should_panic]
     fn test_underflow() {
         let mut stack = Stack::new();
-        stack.pop();  // Pop from empty stack
+        stack.pop(); // Pop from empty stack
     }
 }

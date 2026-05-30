@@ -1,4 +1,4 @@
-//! Minimal WASM Chip-8 emulator - all in one file for simplicity
+//! Minimal WASM Chip-8 emulator
 
 use wasm_bindgen::prelude::*;
 
@@ -11,6 +11,8 @@ pub struct Chip8Wasm {
     display: [u8; 2048],
     stack: [u16; 16],
     sp: usize,
+    delay_timer: u8,
+    sound_timer: u8,
 }
 
 #[wasm_bindgen]
@@ -25,6 +27,8 @@ impl Chip8Wasm {
             display: [0; 2048],
             stack: [0; 16],
             sp: 0,
+            delay_timer: 0,
+            sound_timer: 0,
         };
         chip8.load_fonts();
         chip8
@@ -60,6 +64,8 @@ impl Chip8Wasm {
         self.pc = 0x200;
         self.sp = 0;
         self.display = [0; 2048];
+        self.delay_timer = 0;
+        self.sound_timer = 0;
         self.load_fonts();
     }
 
@@ -83,7 +89,8 @@ impl Chip8Wasm {
             return;
         }
         
-        let opcode = ((self.memory[self.pc as usize] as u16) << 8) | (self.memory[self.pc as usize + 1] as u16);
+        let opcode = ((self.memory[self.pc as usize] as u16) << 8) 
+                  | (self.memory[self.pc as usize + 1] as u16);
         self.pc += 2;
         
         let op = (opcode >> 12) as u8;
@@ -178,5 +185,27 @@ impl Chip8Wasm {
 
     pub fn get_index(&self) -> u16 {
         self.i
+    }
+
+    pub fn get_delay_timer(&self) -> u8 {
+        self.delay_timer
+    }
+
+    pub fn get_sound_timer(&self) -> u8 {
+        self.sound_timer
+    }
+
+    pub fn update(&mut self) {
+        // Execute ~12 instructions per frame (60 FPS ≈ 720 IPS)
+        for _ in 0..12 {
+            self.step();
+        }
+        // Update timers (simplified - just decrement if > 0)
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
+        }
     }
 }

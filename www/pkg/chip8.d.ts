@@ -4,14 +4,17 @@
 export class Chip8Wasm {
     free(): void;
     [Symbol.dispose](): void;
+    get_delay_timer(): number;
     get_display(): Uint8Array;
     get_index(): number;
     get_pc(): number;
+    get_sound_timer(): number;
     load_demo(): void;
     load_rom(data: Uint8Array): number;
     constructor();
     reset(): void;
     step(): void;
+    update(): void;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -27,6 +30,9 @@ export interface InitOutput {
     readonly chip8wasm_get_display: (a: number) => [number, number];
     readonly chip8wasm_get_pc: (a: number) => number;
     readonly chip8wasm_get_index: (a: number) => number;
+    readonly chip8wasm_get_delay_timer: (a: number) => number;
+    readonly chip8wasm_get_sound_timer: (a: number) => number;
+    readonly chip8wasm_update: (a: number) => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

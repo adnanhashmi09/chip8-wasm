@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Ultra Minimal Test</title></head>
+<body>
+<h1>Test</h1>
+<pre id="out"></pre>
+<script type="module">
+const out = document.getElementById('out');
+out.textContent = 'Starting...';
+
+try {
+    out.textContent += '\n1. Importing...';
+    const { default: init, Chip8Wasm } = await import('./pkg/chip8.js');
+    
+    out.textContent += '\n2. Init...';
+    await init();
+    
+    out.textContent += '\n3. Create Chip8Wasm...';
+    const chip8 = new Chip8Wasm();
+    
+    out.textContent += '\n4. Success! PC=' + chip8.get_pc();
+    
+    // Check display
+    const d = chip8.get_display();
+    out.textContent += '\n5. Display bytes: ' + d.length;
+    
+} catch(e) {
+    out.textContent += '\nERROR: ' + e.message + '\n' + (e.stack || '');
+}
+</script>
+</body>
+</html>
